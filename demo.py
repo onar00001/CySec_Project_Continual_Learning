@@ -196,8 +196,8 @@ with current_set:
     
     #st.image(r"C:\Users\User\Desktop\CySec_Project_CDD\demo_streamlit\demo_results_larger\Screenshot 2026-08-13 234025.png")
     #st.image(r"C:\Users\User\Desktop\CySec_Project_CDD\demo_streamlit\demo_results_larger\Screenshot 2026-08-13 234110.png")
-    df_icarl = pd.read_csv(r"C:\Users\User\Desktop\CySec_Project_CDD\demo_streamlit\acc_results_from_repo\icarl_acc_matrix.csv")
-    df_naive = pd.read_csv(r"C:\Users\User\Desktop\CySec_Project_CDD\demo_streamlit\acc_results_from_repo\naive_acc_matrix.csv")
+    df_icarl = pd.read_csv("acc_results_from_repo/icarl_acc_matrix.csv")
+    df_naive = pd.read_csv("acc_results_from_repo/naive_acc_matrix.csv")
 
     st.subheader("iCaRL")
     st.dataframe(heatmap_creation(df_icarl),width='stretch',hide_index=True)
