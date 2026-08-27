@@ -5,3 +5,4 @@ pillow
 torch
 torchvision
 tqdm
+matplotlib
