@@ -167,9 +167,9 @@ def heatmap_creation(df):
 
 if __name__ == "__main__":
     st.set_page_config(page_title="Continual vs Common deepfake detection", layout="wide")
-    current_set,demo_single_img = st.tabs(["Matrix Eval", "Interactive Selection"])
+    theory_iCaRL,theory_LUCIR,demo_10_img_iCaRL,demo_10_img_LUCIR = st.tabs(["Matrix Eval (iCaRL)", "Interactive Selection (iCaRL)","Matrix Eval (LUCIR)", "Interactive Selection (LUCIR)"])
 
-with current_set:
+with theory_iCaRL:
     st.title("CONTINUAL DEEPFAKE DETECTION")
     st.title("Deepfake Detection")
     st.write("Before we explain what deepfake detection is, let us shortly explain what deepfakes are: \n\n Deepfakes are images or videos that are manipulated with the help of AI(e.g. Deep Learning models) or can even be synthetically generated"
@@ -212,14 +212,19 @@ with current_set:
 
     st.title("Additional Information")
     st.write("First we should clarify that we here focus on Binary Class Learning, meaning that the classification task is to differentiate between real and fake images, no matter from which fake image generator the fake image originates.")
-    st.write("For this demo, we used the following Continual Learning method : Incremental Classifier and Representation Learning, which is also knowns as iCaRL. But how does this method work?:\n\n" \
+    st.write("For this demo, we used two Continual Learning methods : Incremental Classifier and Representation Learning, which is also known as iCaRL and Learning a unified classifier incrementally via Rebalancing. But how does this method work?:\n\n" \
     " Before explaining what iCaRL concretely does, we first have to explain, what knowledge distillation is: \n\n " \
     " Before a model learns a new deepfake variant, we capture the knowledge of its previous state. The model is constantly penalized, while being trained on a new task, if its prediction drifts away too much from the model's prediction in the previous state. This discrepancy is also " \
     "known as the distillation loss, which we want to minimize. \n\n Additionally we should clarify what the classification loss is. It just describes the discrepancy " \
     "between the predicted label (real or fake) and the true label (real or fake) \n\n Now that we know what knowledge distillation and what classification loss is, we can explain what iCaRL does: \n\n" \
     "iCaRL operates under a strict class incremental protocol, which defines the sequence of the following training and evaluation phase steps: \n\n" \
     "- Training Phase: The model first receives data for the classes of task t. During that the model has access to its exemplar memory which is a set, which contains data from the classes from task 1 to task t-1. The model improves by minimizing the distillation and classification loss.\n\n" \
-    "- Evaluation Phase: The model must classify test samples after it has seen all classes from task 1 to task t.")
+    "- Evaluation Phase: The model must classify test samples after it has seen all classes from task 1 to task t.\n\n" \
+    "LUCIR operates under the same strict class incremental protocol, but with two additional factors:\n\n" \
+    "- Cosine normalization: If the model was trained on task i and is now trained on task i+1 with way more data in the current training data set than from task i, for which only the most representative data was chosen, we have the problem that there is a higher bias towards the current detection task. To solve this problem" \
+    "LUCIR takes the model's weights and the feature vector of the image that we wanna classify and normalizes both, such that only the orientation of the corresponding weights matter and not the amount of data.\n\n" \
+    "- Feature Distillation: While the model is trained to learn a new task, the model's internal layers start to change: We compare the normalized feature representations of the current model with those of the previous model to force their orientations to stay aligned.  ")
+    
     st.header("Scenario for our demo")
     st.write("For our scenario we deal, as already mentioned, with binary classification (fake vs real) even if there are seven deepfake detection tasks given. However what we will then just do is to add up the probabilities of being a deepfake generator class from the first task until the i-th tasks of seven tasks, which is then the overall probability of being a fake image." \
     "This means that the accuracies that are calculated and displayed in the table show, how many times we correctly labeled a set of test images as fake/real for a given task\n\n" \
@@ -250,9 +255,10 @@ with current_set:
     
     st.code(bibtex_citation, language="bibtex")
 
+
     # it is normal that naive model has higher confidence especially for d2 tested on task t1 due
     # to the fact that the softmax applied to the eucledian distance yields lower probabilities but more stable for detectors in a later state
-with demo_single_img:
+with demo_10_img_iCaRL:
     av_acc = {"Naive Learning":{1:100.0, 2:100.0,3:66.7,4:75.0,5:58.0}, "iCaRL":{1:100.0,2:100.0,3:100.0,4:95.0, 5:80.0}}
     st.header("Single Picture Evaluation")
     st.info("**What is this demo about?**:  You can test how well a deepfake detector can recognize fake images. Compare a neural network detector trained in a standard way with a neural network detector trained via Continual Learning. ")
@@ -341,6 +347,9 @@ with demo_single_img:
                 else:
                     st.error(f"The model recognizes the image wrongly as {pred_label}, although it was {true_label} ")
 
+with theory_LUCIR:
+    # TODO 
+    dummy = 0
                     
                     
                        
