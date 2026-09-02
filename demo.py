@@ -7,6 +7,12 @@ from PIL import Image
 from argparse import Namespace
 import pandas as pd
 import gc
+import sys
+import models_lucir.modified_resnet
+from models_lucir.modified_resnet import resnet50
+
+sys.modules['models'] = sys.modules.get('models_lucir')
+sys.modules['models.modified_resnet'] = models_lucir.modified_resnet
 
 #torch.set_num_threads(4)
 
@@ -14,6 +20,8 @@ task_dict = {1:"GauGAN", 2:"BigGAN", 3:"imle", 4:"deepfake" , 5:"wild"}
 
 checkpoint_dir= "./checkpoints_with_only_5_tasks/"
 checkpoint_naive_dir = "./checkpoints_naive_with_only_5_tasks/"
+checkpoint_naive_dir_l ="./checkpoints_naive_l"
+checkpoint_dir_l = "./checkpoints_lucir"
 
 total_eval_steps = 25
 
@@ -34,6 +42,42 @@ def load_naive_model(state_idx):
     model = Model_CNND(1,args=demo_args)
     state_dict = torch.load(path,map_location=torch.device('cpu'))
     model.load_state_dict(state_dict)
+    model.eval()
+    return model
+
+@st.cache_resource(max_entries=1)
+def load_naive_model_luc(state_idx):
+    file_name = f"naive_model_state_{state_idx}_after_t{state_idx-1}.pt"
+    path = os.path.join(checkpoint_naive_dir_l,file_name)
+    if not os.path.exists(path):
+            return None
+
+    checkpoint = torch.load(path,map_location=torch.device('cpu'),weights_only=False)
+    if isinstance(checkpoint,torch.nn.Module):
+        model = checkpoint
+    else:
+        class_num_cur = 2*state_idx
+        model = resnet50(num_classes=class_num_cur,pretrained=False)
+        state_dict = checkpoint.get('state_dict',checkpoint) if isinstance(checkpoint,dict) else checkpoint.state_dict()
+        model.load_state_dict(state_dict)
+
+    model.eval()
+    return model
+
+@st.cache_resource(max_entries=1)
+def load_lucir_model(state_idx):
+    file_name = f"model_state_{state_idx}_after_t{state_idx-1}.pt"
+    path = os.path.join(checkpoint_dir_l,file_name)
+    if not os.path.exists(path):
+            return None
+    checkpoint = torch.load(path,map_location=torch.device('cpu'),weights_only=False)
+    if isinstance(checkpoint,torch.nn.Module):
+        model = checkpoint
+    else:
+        class_num_cur = 2*state_idx
+        model = resnet50(num_classes=class_num_cur,pretrained=False)
+        state_dict = checkpoint.get('state_dict',checkpoint) if isinstance(checkpoint,dict) else checkpoint.state_dict()
+        model.load_state_dict(state_dict)
     model.eval()
     return model
     
@@ -96,7 +140,7 @@ def icarl_inference(model,class_means,img_tensor):
         probs = torch.softmax(score_icarl,dim=1)
        
 
-        # indices contain probability of that is a (1-GauGAN fake, 2-BigGAN fake etc)
+        # indices contain probability being a (1-GauGAN fake, 2-BigGAN fake etc)
         # fake_prob contains prob that it is just fake
         fake_class_idx = [i for i in range(score_icarl.shape[1]) if i % 2 == 1] 
         fake_prob = sum([probs[0,idx].item() for idx in fake_class_idx])
@@ -104,6 +148,17 @@ def icarl_inference(model,class_means,img_tensor):
         is_fake = fake_prob > 0.5
         confidence = fake_prob if is_fake else 1.0 - fake_prob
 
+        return is_fake,confidence,fake_prob
+
+def lucir_inference(model,img_tensor):
+    with torch.no_grad():
+        output = model(img_tensor)
+        logits = output['logits']
+        probs = torch.softmax(logits,dim=1)
+        fake_class_idx = [i for i in range(logits.shape[1]) if i%2 == 1]
+        fake_prob = sum([probs[0,idx].item() for idx in fake_class_idx])
+        is_fake = fake_prob > 0.5
+        confidence = fake_prob if is_fake else 1.0 -fake_prob
         return is_fake,confidence,fake_prob
     
 def load_demo_set(task_name):
@@ -130,28 +185,28 @@ def load_demo_set_large(task_name):
                 images.append((os.path.join(folder,fname),label))
     return images
     
-def evaluate_state_on_set_with_both(model_naive,model_icarl,class_means,image_label_pairs):
-    naive_cor = 0 if model_naive is not None else None
-    icarl_cor = (0 if model_icarl is not None and class_means is not None else None)
-    n = len(image_label_pairs)
-    if n == 0:
-        return None,None
-    for path,true_label in image_label_pairs:
-        with Image.open(path) as r_img:
-            img = r_img.convert("RGB")
-            img_tensor = Transform(img).unsqueeze(0)
-        if model_naive is not None:
-            naive_is_fake,_,_ = naive_inference(model_naive,img_tensor)
-            naive_cor += int(int(naive_is_fake)==true_label)
+#def evaluate_state_on_set_with_both(model_naive,model_icarl,class_means,image_label_pairs):
+ #   naive_cor = 0 if model_naive is not None else None
+  #  icarl_cor = (0 if model_icarl is not None and class_means is not None else None)
+   # n = len(image_label_pairs)
+    #if n == 0:
+     #   return None,None
+    #for path,true_label in image_label_pairs:
+    #    with Image.open(path) as r_img:
+    #        img = r_img.convert("RGB")
+    #        img_tensor = Transform(img).unsqueeze(0)
+    #    if model_naive is not None:
+    #        naive_is_fake,_,_ = naive_inference(model_naive,img_tensor)
+    #        naive_cor += int(int(naive_is_fake)==true_label)
 
-        if model_icarl is not None and class_means is not None:
-            icarl_is_fake,_,_ = icarl_inference(model_icarl,class_means,img_tensor)
-            if icarl_is_fake is not None:
-                icarl_cor += int(int(icarl_is_fake)==true_label)
+     #   if model_icarl is not None and class_means is not None:
+      #      icarl_is_fake,_,_ = icarl_inference(model_icarl,class_means,img_tensor)
+       #     if icarl_is_fake is not None:
+        #        icarl_cor += int(int(icarl_is_fake)==true_label)
         
-    naive_acc = naive_cor/n if naive_cor is not None else None
-    icarl_acc = icarl_cor /n if icarl_cor is not None else None
-    return naive_acc,icarl_acc
+    #naive_acc = naive_cor/n if naive_cor is not None else None
+    #icarl_acc = icarl_cor /n if icarl_cor is not None else None
+    #return naive_acc,icarl_acc
 
 def heatmap_creation(df):
     task_cols = []
@@ -167,9 +222,9 @@ def heatmap_creation(df):
 
 if __name__ == "__main__":
     st.set_page_config(page_title="Continual vs Common deepfake detection", layout="wide")
-    theory_iCaRL,theory_LUCIR,demo_10_img_iCaRL,demo_10_img_LUCIR = st.tabs(["Matrix Eval (iCaRL)", "Interactive Selection (iCaRL)","Matrix Eval (LUCIR)", "Interactive Selection (LUCIR)"])
+    theory_iCaRL_and_LUCIR,demo_10_img_iCaRL,demo_10_img_LUCIR = st.tabs(["Matrix Eval (iCaRL)", "Interactive Selection (iCaRL)", "Interactive Selection (LUCIR)"])
 
-with theory_iCaRL:
+with theory_iCaRL_and_LUCIR:
     st.title("CONTINUAL DEEPFAKE DETECTION")
     st.title("Deepfake Detection")
     st.write("Before we explain what deepfake detection is, let us shortly explain what deepfakes are: \n\n Deepfakes are images or videos that are manipulated with the help of AI(e.g. Deep Learning models) or can even be synthetically generated"
@@ -198,12 +253,22 @@ with theory_iCaRL:
     #st.image(r"C:\Users\User\Desktop\CySec_Project_CDD\demo_streamlit\demo_results_larger\Screenshot 2026-08-13 234110.png")
     df_icarl = pd.read_csv("acc_results_from_repo/icarl_acc_matrix.csv")
     df_naive = pd.read_csv("acc_results_from_repo/naive_acc_matrix.csv")
+    df_lucir = pd.read_csv("acc_results_lucir/lucir_acc_matrix.csv")
+    df_naive_lu = pd.read_csv("acc_results_lucir/naive_acc_matrix.csv")
 
     st.subheader("iCaRL")
     st.dataframe(heatmap_creation(df_icarl),width='stretch',hide_index=True)
 
     st.subheader("Naive")
     st.dataframe(heatmap_creation(df_naive),width='stretch',hide_index=True)
+
+    st.subheader("LUCIR")
+    st.dataframe(heatmap_creation(df_lucir),width='stretch',hide_index=True)
+
+    st.subheader("Naive")
+    st.dataframe(heatmap_creation(df_naive_lu),width='stretch',hide_index=True)
+    
+    
     
 
 
@@ -212,7 +277,7 @@ with theory_iCaRL:
 
     st.title("Additional Information")
     st.write("First we should clarify that we here focus on Binary Class Learning, meaning that the classification task is to differentiate between real and fake images, no matter from which fake image generator the fake image originates.")
-    st.write("For this demo, we used two Continual Learning methods : Incremental Classifier and Representation Learning, which is also known as iCaRL and Learning a unified classifier incrementally via Rebalancing. But how does this method work?:\n\n" \
+    st.write("For this demo, we used two Continual Learning methods : Incremental Classifier and Representation Learning, which is also known as iCaRL and Learning a unified classifier incrementally via Rebalancing. But how do these two methods work?:\n\n" \
     " Before explaining what iCaRL concretely does, we first have to explain, what knowledge distillation is: \n\n " \
     " Before a model learns a new deepfake variant, we capture the knowledge of its previous state. The model is constantly penalized, while being trained on a new task, if its prediction drifts away too much from the model's prediction in the previous state. This discrepancy is also " \
     "known as the distillation loss, which we want to minimize. \n\n Additionally we should clarify what the classification loss is. It just describes the discrepancy " \
@@ -236,8 +301,9 @@ with theory_iCaRL:
     "After we clarified now what the values within the tables mean, we have to mention that we have one table filled with the accuracies if the model is trained from task to task naively without considering the training data from the previous tasks, meaning we do not apply Continual Learning here." \
     "For the other table however we used the iCaRL method to train the model from task to task, where we considered to include a representative subset of the training data that was used to train how to solve previous tasks. \n\n" \
     "As you will see, for the naive approach the accuracies below the diagonal will in general not look that good, which is the effect of 'Catastrophic Forgetting, that we already talked about." \
-    "In comparison the accuracies below the diagonal for the iCaRL table will look pretty good, showing the benefits of Continual Learning." \
-    "The accuracies above the diagonal are low for both approaches.")
+    "In comparison the accuracies below the diagonal for the iCaRL/LUCIR table will look pretty good, showing the benefits of Continual Learning." \
+    "The accuracies above the diagonal are low for both approaches.\n\n" \
+    "Additionally it should be mentioned that LUCIR does perform better in general as well as for our demo, which can be seen through the average accuracy per state due to the additional measures that LUCIR takes, which was explained above.")
 
     st.title("Citation")
     st.write("The code used for the training originates from these authors and their corresponding paper: ")
@@ -271,7 +337,7 @@ with demo_10_img_iCaRL:
 
     with col_s:
         st.markdown("#### 2. Choose detector")
-        sel_state_idx = st.selectbox("State:",options=list(task_dict.keys()),format_func=lambda i: f"Detector {i} (trained to solve task {"1" if i == 1 else "1 to " f"{i}" })")
+        sel_state_idx = st.selectbox("State:",options=list(task_dict.keys()),format_func=lambda i: f"Detector {i} (trained to solve task {"1" if i == 1 else "1 to " f"{i}" })",key="Select iCaRL or naive state")
         naive_avg = av_acc["Naive Learning"][sel_state_idx]
         icarl_avg = av_acc["iCaRL"][sel_state_idx]
         cur_avg = naive_avg if method == "Naive Learning" else icarl_avg
@@ -279,7 +345,7 @@ with demo_10_img_iCaRL:
 
     with col_t:
         st.markdown("#### 3. Choose test domain")
-        sel_task_idx = st.selectbox(f"Test set:",options=list(task_dict.keys()),format_func=lambda i: f"Choose validation set to test how detector solves task {i}")
+        sel_task_idx = st.selectbox(f"Test set:",options=list(task_dict.keys()),format_func=lambda i: f"Choose validation set to test how detector solves task {i}",key="Select test set (iCaRL or naive)")
 
     st.divider()
 
@@ -297,7 +363,7 @@ with demo_10_img_iCaRL:
             gr_tr = "Real" if label == 0 else "Fake"
             return f"Image {index+1} : {file_name} (Ground truth : {gr_tr})"
 
-        sel_img_idx = st.selectbox("Choose a validation image",options=range(len(demo_imgs)),format_func=file_name_gt)
+        sel_img_idx = st.selectbox("Choose a validation image",options=range(len(demo_imgs)),format_func=file_name_gt,key="Selected image_iC")
         sel_img_path,tr_la = demo_imgs[sel_img_idx]
         true_label = "Real" if tr_la == 0 else "Fake" 
 
@@ -347,9 +413,94 @@ with demo_10_img_iCaRL:
                 else:
                     st.error(f"The model recognizes the image wrongly as {pred_label}, although it was {true_label} ")
 
-with theory_LUCIR:
-    # TODO 
-    dummy = 0
+with demo_10_img_LUCIR:
+    av_acc_l = {"Naive Learning":{1:100.0, 2:95.0,3:66.7,4:60.0,5:62.0}, "LUCIR":{1:100.0,2:100.0,3:100.0,4:97.5, 5:88.0}}
+    st.header("Single Picture Evaluation")
+    st.info("**What is this demo about?**:  You can test how well a deepfake detector can recognize fake images. Compare a neural network detector trained in a standard way with a neural network detector trained via Continual Learning. ")
+    col_m_l, col_s_l, col_t_l = st.columns(3)
+    
+    with col_m_l:
+        st.markdown("#### 1. Choose method")
+        method = st.radio("Training method used:",["Naive Learning","LUCIR(Learning a Unified Classifier Incrementally via Rebalancing)"],help=" 'Naive' means that the model is trained in such a way, such that it forgets how to differentiate between real and fake for an old task, i.e. to differentiate between the fake images of a certain generator and real images.\n\n" \
+        "'Continual' means that the training set is updated from task to task, such that this 'Forgetting is mitigated.")
+    
+    with col_s_l:
+        st.markdown("#### 2. Choose detector")
+        sel_state_idx = st.selectbox("State:",options=list(task_dict.keys()),format_func=lambda i: f"Detector {i} (trained to solve task {"1" if i == 1 else "1 to " f"{i}" })",key="Select LUCIR state or naive")
+        naive_avg = av_acc_l["Naive Learning"][sel_state_idx]
+        lucir_avg = av_acc_l["LUCIR"][sel_state_idx]
+        cur_avg = naive_avg if method == "Naive Learning" else lucir_avg
+        st.caption(f" Average accuracy of detector for state {sel_state_idx} = {cur_avg} %",help="The average accuracy for each state (or the i-th row) is calculated by taking the accuracies from the testings of task 1 to task t (or column 1 to column t), where t is the number of the last task that the model has been trained on and divide them by the number of tasks t.")
+    
+    with col_t_l:
+        st.markdown("#### 3. Choose test domain")
+        sel_task_idx = st.selectbox(f"Test set:",options=list(task_dict.keys()),format_func=lambda i: f"Choose validation set to test how detector solves task {i}",key= "Select test set(LUCIR or naive)")
+    
+    st.divider()
+    
+    # Choice of image
+    task_name = task_dict[sel_task_idx]
+    demo_imgs = load_demo_set(task_name)
+    
+    if not demo_imgs:
+        st.warning(f"No images found in folder for task {task_name}")
+    
+    else:
+        def file_name_gt(index):
+            path_img,label = demo_imgs[index] 
+            file_name = os.path.basename(path_img)
+            gr_tr = "Real" if label == 0 else "Fake"
+            return f"Image {index+1} : {file_name} (Ground truth : {gr_tr})"
+    
+        sel_img_idx = st.selectbox("Choose a validation image",options=range(len(demo_imgs)),format_func=file_name_gt,key="Selected img (LUCIR or naive)")
+        sel_img_path,tr_la = demo_imgs[sel_img_idx]
+        true_label = "Real" if tr_la == 0 else "Fake" 
+    
+        # loading model and doing inference
+        img_r = Image.open(sel_img_path).convert("RGB")
+        img_ten = Transform(img_r).unsqueeze(0)
+        is_fake, confidence, prob = None,None,None
+    
+        if method == "Naive Learning":
+            model = load_naive_model_luc(sel_state_idx)
+            if model is not None:
+                is_fake,confidence,prob = lucir_inference(model,img_ten)
+        else:
+            model = load_lucir_model(sel_state_idx)
+            if model is not None:
+                is_fake,confidence,prob = lucir_inference(model,img_ten)
+    
+        # visualization of result
+        col_img_l,col_res_l = st.columns([1,1])
+    
+        with col_img_l:
+            st.subheader("Chosen Picture")
+            st.image(img_r,width='stretch', caption=f"File : {os.path.basename(sel_img_path)}")
+    
+        with col_res_l:
+            st.subheader("Prediction")
+    
+            if is_fake is None:
+                st.error("Model or class means could not be loaded")
+    
+            else:
+                pred_label = "Fake" if is_fake else "Real"
+                correct = int(is_fake)== tr_la
+    
+                met_col_1_l, met_col_2_l = st.columns(2)
+    
+                with met_col_1_l:
+                    st.metric("Ground Truth",true_label)
+    
+                with met_col_2_l:
+                    st.metric("Prediction",pred_label)
+    
+                st.metric(f"Confidence/Probability that image is {pred_label} ",f"{confidence*100:.2f}")
+    
+                if correct:
+                    st.success(f"The model recognizes the image correctly as {pred_label}")
+                else:
+                    st.error(f"The model recognizes the image wrongly as {pred_label}, although it was {true_label} ")
                     
                     
                        
