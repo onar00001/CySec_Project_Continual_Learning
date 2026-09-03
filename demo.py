@@ -291,18 +291,17 @@ with theory_iCaRL_and_LUCIR:
     "- Evaluation Phase: The model must classify test samples after it has seen all classes from task 1 to task t. ")
     
     st.header("Scenario for our demo")
-    st.write("For our scenario we deal, as already mentioned, with binary classification (fake vs real) even if there are seven deepfake detection tasks given. However what we will then just do is to add up the probabilities of being a deepfake generator class from the first task until the i-th tasks of seven tasks, which is then the overall probability of being a fake image." \
+    st.write("For our scenario we deal, as already mentioned, with binary classification (fake vs real) even if there are seven deepfake detection tasks given. However what we will then just do is to add up the probabilities of being a deepfake generator class from the first task until the i-th task of seven tasks, which is then the overall probability of being a fake image. " \
     "This means that the accuracies that are calculated and displayed in the table show, how many times we correctly labeled a set of test images as fake/real for a given task\n\n" \
-    "The rows in the table represent the state of the model, meaning on which tasks it has already been trained on. The columns represent the task on which the model is currently tested on." 
-    "In the table the accuracies on the diagonal show the performance of the model trained on the newest task t + on the previous tasks 1 until task t-1, which is tested to solve the newest task t, that it was currently trained on." \
-    "The accuracies under the diagonal show the performance of the model trained on the newest task t + on the previous tasks 1 until task t-1, which is tested to solve the previous tasks 1 to task t-1." \
-    "The accuracies above the diagonal show the performance of the model trained on task t, which is tested to solve task t+1 to task t_n, where n is the number of all tasks." \
-    "To measure those performance makes sense in a deepfake detection scenario, because we want to see how much the model learned from other deepfakes that it detected and how it performs on deepfake detection tasks, that the model was not trained on yet.\n\n" \
-    "After we clarified now what the values within the tables mean, we have to mention that we have one table filled with the accuracies if the model is trained from task to task naively without considering the training data from the previous tasks, meaning we do not apply Continual Learning here." \
-    "For the other table however we used the iCaRL method to train the model from task to task, where we considered to include a representative subset of the training data that was used to train how to solve previous tasks. \n\n" \
-    "As you will see, for the naive approach the accuracies below the diagonal will in general not look that good, which is the effect of 'Catastrophic Forgetting, that we already talked about." \
-    "In comparison the accuracies below the diagonal for the iCaRL/LUCIR table will look pretty good, showing the benefits of Continual Learning." \
-    "The accuracies above the diagonal are low for both approaches.\n\n" \
+    "The rows in the table represent the state of the model, meaning on which tasks it has already been trained on. The columns represent the task on which the model is currently tested on. " 
+    "In the table the accuracies on the diagonal show the performance of the model trained on the newest task t, which is tested to solve the current task t. " \
+    "The accuracies under the diagonal show the performance of the model trained on the newest task t, which is tested to solve the previous tasks 1 to task t-1." \
+    "The accuracies above the diagonal show the performance of the model trained on task t, which is tested to solve task t+1 to task t_n, where n is the number of all tasks, also known as zero-shot accuracy. " \
+    "After we clarified now what the values within the tables mean, we have to mention that we have one table filled with the accuracies if the model is trained from task to task naively without considering the training data from the previous tasks, meaning we do not apply Continual Learning here. " \
+    "For the other table however we used the iCaRL/LUCIR method to train the model from task to task, where we considered to include a representative subset of the training data that was used to train how to solve previous tasks. \n\n" \
+    "As you will see, for the naive approach the accuracies below the diagonal will in general not look that good, which is the effect of 'Catastrophic Forgetting, that we already talked about. " \
+    "In comparison the accuracies below the diagonal for the iCaRL/LUCIR table will look pretty good, showing the benefits of Continual Learning. " \
+    "The accuracies above the diagonal are low for both approaches due to the fact that the model has not yet seen the data to solve these tasks. \n\n" \
     "Additionally it should be mentioned that LUCIR does perform better in general as well as for our demo, which can be seen through the average accuracy per state due to the additional measures that LUCIR takes, which was explained above.")
 
     st.title("Citation")
