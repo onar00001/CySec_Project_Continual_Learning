@@ -285,8 +285,8 @@ with theory_iCaRL_and_LUCIR:
     "LUCIR operates under the same strict class incremental protocol, but with two additional factors:\n\n" \
     "- Cosine normalization: If the model was trained on task i and is now trained on task i+1 with way more data in the current training data set than from task i, for which only the most representative data was chosen, we have the problem that there is a higher bias towards the current detection task. To solve this problem" \
     "LUCIR takes the model's weights and the feature vector of the image that we wanna classify and normalizes both, such that only the orientation of the corresponding weights matter and not the amount of data.\n\n" \
-    "- Feature Distillation: While the model is trained to learn a new task, the model's internal layers start to change: We compare the normalized feature representations of the current model with those of the previous model to force their orientations to stay aligned. " \
-    "such that the sequence of following training and evaluation steps can be defined:\n\n" \
+    "- Feature Distillation: While the model is trained to learn a new task, the model's internal layers start to change: We compare the normalized feature representations of the current model with those of the previous model to force their orientations to stay aligned.\n\n " \
+    "The sequence of following training and evaluation steps can be defined as:\n\n" \
     "- Training Phase: Before receiving the data for the classes of task t, the weights of the model and the output of the feature extractor, that takes input data, is normalized. During that the model has access to its exemplar memory, just as in iCaRL and it improves by minimizing the classification loss (with normalized weights and normalized feature extractor) and the feature distillation loss.\n\n" \
     "- Evaluation Phase: The model must classify test samples after it has seen all classes from task 1 to task t. ")
     
