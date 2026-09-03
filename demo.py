@@ -236,9 +236,9 @@ with theory_iCaRL_and_LUCIR:
     " This means that if you want to be able to detect multiple kind of deepfakes, this will lead to the need of retraining the model from zero again and again.\n" \
     "This is where Continual Learning will come into play.")
     st.title("Continual Learning")
-    st.write( "Before explaining what Continual Learning is, we want to explain what a task is. A task can be seen as a classification problem that a model is trying to solve." \
-    "A task for example would be: A model should classify, given a test picture, if there is a dog on the picture or a cat. Another example would be to classify between a car and a motorcycle." \
-    "If we have now multiple tasks that a model should solve, we will see that after being trained on the newest task, it will have problems to solve an older task\n" \
+    st.write( "Before explaining what Continual Learning is, we want to explain what a task is. A task can be seen as a classification problem that a model is trying to solve. " \
+    "A task for example would be: A model should classify, given a test picture, if there is a dog on the picture or a cat. Another example would be to classify between a car and a motorcycle. " \
+    "If we have now multiple tasks that a model should solve, we will see that after being trained on the newest task, it will have problems to solve an older task.\n\n" \
     "Why?: Because the model starts to forget how to solve old tasks, since it was overwritten with the training data that is needed to solve the newest task.\n" \
     "To mitigate this, so called, 'Catastrophic forgetting', we use Continual Learning. But what does that mean?: \n\n It simply means that every time we train the model, the used training data for the training of the newest task is complemented by a subset of the training data " \
     "that was used to train the model on a previous task. This subset is selected in such a way that it is representative for the old classes." \
@@ -256,39 +256,39 @@ with theory_iCaRL_and_LUCIR:
     df_lucir = pd.read_csv("acc_results_lucir/lucir_acc_matrix.csv")
     df_naive_lu = pd.read_csv("acc_results_lucir/naive_acc_matrix.csv")
 
+    st.title("Accuracy: Continual Learning (iCaRL and LUCIR) vs Naive Learning")
+
+    st.header("Continual Learning: Method 1 = iCaRL")
     st.subheader("iCaRL")
     st.dataframe(heatmap_creation(df_icarl),width='stretch',hide_index=True)
 
     st.subheader("Naive")
     st.dataframe(heatmap_creation(df_naive),width='stretch',hide_index=True)
 
+    st.header("Continual Learning: Method 2 = LUCIR")
     st.subheader("LUCIR")
     st.dataframe(heatmap_creation(df_lucir),width='stretch',hide_index=True)
 
     st.subheader("Naive")
     st.dataframe(heatmap_creation(df_naive_lu),width='stretch',hide_index=True)
     
-    
-    
-
-
-
-
-
     st.title("Additional Information")
     st.write("First we should clarify that we here focus on Binary Class Learning, meaning that the classification task is to differentiate between real and fake images, no matter from which fake image generator the fake image originates.")
-    st.write("For this demo, we used two Continual Learning methods : Incremental Classifier and Representation Learning, which is also known as iCaRL and Learning a unified classifier incrementally via Rebalancing. But how do these two methods work?:\n\n" \
+    st.write("For this demo, we used two Continual Learning methods : Incremental Classifier and Representation Learning, which is also known as iCaRL and Learning a unified classifier incrementally via Rebalancing, which is also known as iCaRL. But how do these two methods work?:\n\n" \
     " Before explaining what iCaRL concretely does, we first have to explain, what knowledge distillation is: \n\n " \
     " Before a model learns a new deepfake variant, we capture the knowledge of its previous state. The model is constantly penalized, while being trained on a new task, if its prediction drifts away too much from the model's prediction in the previous state. This discrepancy is also " \
     "known as the distillation loss, which we want to minimize. \n\n Additionally we should clarify what the classification loss is. It just describes the discrepancy " \
     "between the predicted label (real or fake) and the true label (real or fake) \n\n Now that we know what knowledge distillation and what classification loss is, we can explain what iCaRL does: \n\n" \
     "iCaRL operates under a strict class incremental protocol, which defines the sequence of the following training and evaluation phase steps: \n\n" \
-    "- Training Phase: The model first receives data for the classes of task t. During that the model has access to its exemplar memory which is a set, which contains data from the classes from task 1 to task t-1. The model improves by minimizing the distillation and classification loss.\n\n" \
+    "- Training Phase: The model first receives data for the classes of task t. During that the model has access to its exemplar memory which is a set, that contains data from the classes from task 1 to task t-1. The model improves by minimizing the knowledge distillation and classification loss.\n\n" \
     "- Evaluation Phase: The model must classify test samples after it has seen all classes from task 1 to task t.\n\n" \
     "LUCIR operates under the same strict class incremental protocol, but with two additional factors:\n\n" \
     "- Cosine normalization: If the model was trained on task i and is now trained on task i+1 with way more data in the current training data set than from task i, for which only the most representative data was chosen, we have the problem that there is a higher bias towards the current detection task. To solve this problem" \
     "LUCIR takes the model's weights and the feature vector of the image that we wanna classify and normalizes both, such that only the orientation of the corresponding weights matter and not the amount of data.\n\n" \
-    "- Feature Distillation: While the model is trained to learn a new task, the model's internal layers start to change: We compare the normalized feature representations of the current model with those of the previous model to force their orientations to stay aligned.  ")
+    "- Feature Distillation: While the model is trained to learn a new task, the model's internal layers start to change: We compare the normalized feature representations of the current model with those of the previous model to force their orientations to stay aligned. " \
+    "such that the sequence of following training and evaluation steps can be defined:\n\n" \
+    "- Training Phase: Before receiving the data for the classes of task t, the weights of the model and the output of the feature extractor, that takes input data, is normalized. During that the model has access to its exemplar memory, just as in iCaRL and it improves by minimizing the classification loss (with normalized weights and normalized feature extractor) and the feature distillation loss.\n\n" \
+    "- Evaluation Phase: The model must classify test samples after it has seen all classes from task 1 to task t. ")
     
     st.header("Scenario for our demo")
     st.write("For our scenario we deal, as already mentioned, with binary classification (fake vs real) even if there are seven deepfake detection tasks given. However what we will then just do is to add up the probabilities of being a deepfake generator class from the first task until the i-th tasks of seven tasks, which is then the overall probability of being a fake image." \
