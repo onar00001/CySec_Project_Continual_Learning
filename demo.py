@@ -248,6 +248,8 @@ with theory_iCaRL_and_LUCIR:
     "we now have the scenario of deepfakes appearing time by time in a sequential manner. At each learning when trained on a new deepfake detection " \
     "task, a standard neural network would have problems to solve previously learned tasks due to the 'Catastrophic Forgetting' that we already talked about.\n\n" \
     "Continual Learning gives us the possibility to mitigate this problem by updating the model dynamically with new deepfake detection tasks without forgetting how to solve the old ones.")
+
+    st.html("<style> body {bgcolor: #000000;}</style>")
     
     #st.image(r"C:\Users\User\Desktop\CySec_Project_CDD\demo_streamlit\demo_results_larger\Screenshot 2026-08-13 234025.png")
     #st.image(r"C:\Users\User\Desktop\CySec_Project_CDD\demo_streamlit\demo_results_larger\Screenshot 2026-08-13 234110.png")
