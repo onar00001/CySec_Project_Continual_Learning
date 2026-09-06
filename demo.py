@@ -14,8 +14,6 @@ from models_lucir.modified_resnet import resnet50
 sys.modules['models'] = sys.modules.get('models_lucir')
 sys.modules['models.modified_resnet'] = models_lucir.modified_resnet
 
-#torch.set_num_threads(4)
-
 task_dict = {1:"GauGAN", 2:"BigGAN", 3:"imle", 4:"deepfake" , 5:"wild"}
 
 checkpoint_dir= "./checkpoints_with_only_5_tasks/"
@@ -46,16 +44,16 @@ def load_naive_model(state_idx):
     return model
 
 @st.cache_resource(max_entries=1)
-def load_naive_model_luc(state_idx):
+def load_naive_model_luc(state_idx): # resnet50 with cosinelinear layer in contrast to naive flag that was set for icarl code
     file_name = f"naive_model_state_{state_idx}_after_t{state_idx-1}.pt"
     path = os.path.join(checkpoint_naive_dir_l,file_name)
     if not os.path.exists(path):
             return None
 
     checkpoint = torch.load(path,map_location=torch.device('cpu'),weights_only=False)
-    if isinstance(checkpoint,torch.nn.Module):
+    if isinstance(checkpoint,torch.nn.Module): # if whole nn is loaded
         model = checkpoint
-    else:
+    else: # nn with properties in dictionary
         class_num_cur = 2*state_idx
         model = resnet50(num_classes=class_num_cur,pretrained=False)
         state_dict = checkpoint.get('state_dict',checkpoint) if isinstance(checkpoint,dict) else checkpoint.state_dict()
@@ -65,40 +63,27 @@ def load_naive_model_luc(state_idx):
     return model
 
 @st.cache_resource(max_entries=1)
-def load_lucir_model(state_idx):
+def load_lucir_model(state_idx): 
     file_name = f"model_state_{state_idx}_after_t{state_idx-1}.pt"
     path = os.path.join(checkpoint_dir_l,file_name)
     if not os.path.exists(path):
             return None
-    checkpoint = torch.load(path,map_location=torch.device('cpu'),weights_only=False)
-    if isinstance(checkpoint,torch.nn.Module):
-        model = checkpoint
-    else:
-        class_num_cur = 2*state_idx
-        model = resnet50(num_classes=class_num_cur,pretrained=False)
-        state_dict = checkpoint.get('state_dict',checkpoint) if isinstance(checkpoint,dict) else checkpoint.state_dict()
-        model.load_state_dict(state_dict)
+    model = torch.load(path,map_location=torch.device('cpu'),weights_only=False)
     model.eval()
     return model
     
 
 @st.cache_resource(max_entries=1)
 def load_model_and_means(state_idx,total_tasks=5):
-# Model_State laden
-
-   
     file_name = f"model_state_{state_idx}_after_t{state_idx-1}.pt"
-
     path = os.path.join(checkpoint_dir,file_name)
     if not os.path.exists(path):
         return None,None
-    
     demo_args = Namespace(model_name='Demo', model_weights=None)
     model = Model_CNND(1,args=demo_args)
     state_dict = torch.load(path,map_location=torch.device('cpu'))
     model.load_state_dict(state_dict)
     model.eval()
-
 # Class means (Exemplars) laden für iCaRL für state > 0
     class_means = None
     if state_idx > 0:
@@ -108,19 +93,18 @@ def load_model_and_means(state_idx,total_tasks=5):
             class_means = torch.load(means_path,map_location=torch.device('cpu'))
         else:
             st.error(f"Class Means file not found :{means_file_name}")
-    
     return model,class_means
     
 
-def naive_inference(model,img_tensor):
+def naive_inference(model,img_tensor): # done directly on model which just has one classification head (real or fake)
     with torch.no_grad():
         output = model(img_tensor)
         pred_prob = output.item()
         is_fake = pred_prob > 0.5
         confidence = pred_prob if is_fake else (1-pred_prob)
-        return is_fake,confidence,pred_prob
+        return is_fake,confidence,pred_prob 
 
-def icarl_inference(model,class_means,img_tensor):
+def icarl_inference(model,class_means,img_tensor): # we use class means which has dimension d, 2 x tasks
     if class_means is None:
         return None,None,None
 
@@ -150,7 +134,7 @@ def icarl_inference(model,class_means,img_tensor):
 
         return is_fake,confidence,fake_prob
 
-def lucir_inference(model,img_tensor):
+def lucir_inference(model,img_tensor): # number of classes that model can classify is 2 (real or fake) 
     with torch.no_grad():
         output = model(img_tensor)
         logits = output['logits']
@@ -173,40 +157,6 @@ def load_demo_set(task_name):
                 images.append((os.path.join(folder,fname),label))
     return images
 
-def load_demo_set_large(task_name):
-    base = os.path.join("demo_images_larger",task_name)
-    images = []
-    for label,subdir in [(0,"real"),(1,"fake")]:
-        folder = os.path.join(base,subdir)
-        if not os.path.isdir(folder):
-            continue
-        for fname in sorted(os.listdir(folder)):
-            if fname.lower().endswith((".jpg", ".jpeg",".png")):
-                images.append((os.path.join(folder,fname),label))
-    return images
-    
-#def evaluate_state_on_set_with_both(model_naive,model_icarl,class_means,image_label_pairs):
- #   naive_cor = 0 if model_naive is not None else None
-  #  icarl_cor = (0 if model_icarl is not None and class_means is not None else None)
-   # n = len(image_label_pairs)
-    #if n == 0:
-     #   return None,None
-    #for path,true_label in image_label_pairs:
-    #    with Image.open(path) as r_img:
-    #        img = r_img.convert("RGB")
-    #        img_tensor = Transform(img).unsqueeze(0)
-    #    if model_naive is not None:
-    #        naive_is_fake,_,_ = naive_inference(model_naive,img_tensor)
-    #        naive_cor += int(int(naive_is_fake)==true_label)
-
-     #   if model_icarl is not None and class_means is not None:
-      #      icarl_is_fake,_,_ = icarl_inference(model_icarl,class_means,img_tensor)
-       #     if icarl_is_fake is not None:
-        #        icarl_cor += int(int(icarl_is_fake)==true_label)
-        
-    #naive_acc = naive_cor/n if naive_cor is not None else None
-    #icarl_acc = icarl_cor /n if icarl_cor is not None else None
-    #return naive_acc,icarl_acc
 
 def heatmap_creation(df):
     task_cols = []
@@ -222,57 +172,54 @@ def heatmap_creation(df):
 
 if __name__ == "__main__":
     st.set_page_config(page_title="Continual vs Common deepfake detection", layout="wide")
-    theory_iCaRL_and_LUCIR,demo_10_img_iCaRL,demo_10_img_LUCIR = st.tabs(["Matrix Eval (iCaRL)", "Interactive Selection (iCaRL)", "Interactive Selection (LUCIR)"])
+    theory_iCaRL_and_LUCIR,demo_10_img_iCaRL,demo_10_img_LUCIR = st.tabs(["Info and Matrix Eval (iCaRL + LUCIR)", "Interactive Selection (iCaRL)", "Interactive Selection (LUCIR)"])
 
 with theory_iCaRL_and_LUCIR:
     st.title("CONTINUAL DEEPFAKE DETECTION")
     st.title("Deepfake Detection")
     st.write("Before we explain what deepfake detection is, let us shortly explain what deepfakes are: \n\n Deepfakes are images or videos that are manipulated with the help of AI(e.g. Deep Learning models) or can even be synthetically generated"
              ".\n They pose a major threat, when they are used in a medial context to influence people or if they are used to create explicit content of a person without their consent. To mitigate these problems, we need Deepfake Detection."
-             " How could this be realized?: \n\n" \
+             " How could this be realized? \n\n" \
     " Common deepfake detection is made possible by training a model with a fixed amount of images/videos and known fake images/videos to recognize errors like wrong shading, unusual eye movement etc.\n " \
     "The disadvantage of common deepfake detection is that it is stale since we have a frozen model that can only detect a certain kind of deepfakes known during training. And if you wanted to teach the model to detect a new kind of deepfakes, "
     "the model will strongly forget how to detect the old kind of deepfakes."
-    " This means that if you want to be able to detect multiple kind of deepfakes, this will lead to the need of retraining the model from zero again and again.\n" \
+    " This means that if you want to be able to detect multiple kinds of deepfakes, this will lead to the need of retraining the model from zero again and again, which leads to a high cost of resources.\n" \
     "This is where Continual Learning will come into play.")
     st.title("Continual Learning")
     st.write( "Before explaining what Continual Learning is, we want to explain what a task is. A task can be seen as a classification problem that a model is trying to solve. " \
     "A task for example would be: A model should classify, given a test picture, if there is a dog on the picture or a cat. Another example would be to classify between a car and a motorcycle. " \
     "If we have now multiple tasks that a model should solve, we will see that after being trained on the newest task, it will have problems to solve an older task.\n\n" \
     "Why?: Because the model starts to forget how to solve old tasks, since it was overwritten with the training data that is needed to solve the newest task.\n" \
-    "To mitigate this, so called, 'Catastrophic forgetting', we use Continual Learning. But what does that mean?: \n\n It simply means that every time we train the model, the used training data for the training of the newest task is complemented by a subset of the training data " \
-    "that was used to train the model on a previous task. This subset is selected in such a way that it is representative for the old classes." \
+    "To mitigate this, so called, 'Catastrophic Forgetting', we use Continual Learning. But what does that mean? \n\n It simply means that every time we train the model, the data used for the training of the newest task is complemented by a subset of the data " \
+    "that was used to train the model on a previous task. This subset is selected in a way such that it is representative for the old classes." \
     " By this technique the model is able to remember the properties of the old classes such that it can use this newly won memory to solve older tasks in a much better way.")
     st.title("Continual Deepfake Detection")
     st.write("Now we want to combine Continual Learning and Deepfake Detection. This means that in contrast to the stationary set-up, where a large amount of deepfakes is provided all at once," \
     "we now have the scenario of deepfakes appearing time by time in a sequential manner. At each learning when trained on a new deepfake detection " \
-    "task, a standard neural network would have problems to solve previously learned tasks due to the 'Catastrophic Forgetting' that we already talked about.\n\n" \
+    "task, a standard neural network would have problems to solve previously learned tasks due to the 'Catastrofphic Forgetting'.\n\n" \
     "Continual Learning gives us the possibility to mitigate this problem by updating the model dynamically with new deepfake detection tasks without forgetting how to solve the old ones.")
 
     st.html("<style> body {bgcolor: #000000;}</style>")
     
-    #st.image(r"C:\Users\User\Desktop\CySec_Project_CDD\demo_streamlit\demo_results_larger\Screenshot 2026-08-13 234025.png")
-    #st.image(r"C:\Users\User\Desktop\CySec_Project_CDD\demo_streamlit\demo_results_larger\Screenshot 2026-08-13 234110.png")
     df_icarl = pd.read_csv("acc_results_from_repo/icarl_acc_matrix.csv")
     df_naive = pd.read_csv("acc_results_from_repo/naive_acc_matrix.csv")
     df_lucir = pd.read_csv("acc_results_lucir/lucir_acc_matrix.csv")
-    df_naive_lu = pd.read_csv("acc_results_lucir/naive_acc_matrix.csv")
+   
 
     st.title("Accuracy: Continual Learning (iCaRL and LUCIR) vs Naive Learning")
+
+    st.subheader("Naive")
+    st.dataframe(heatmap_creation(df_naive),width='stretch',hide_index=True)
 
     st.header("Continual Learning: Method 1 = iCaRL")
     st.subheader("iCaRL")
     st.dataframe(heatmap_creation(df_icarl),width='stretch',hide_index=True)
 
-    st.subheader("Naive")
-    st.dataframe(heatmap_creation(df_naive),width='stretch',hide_index=True)
-
     st.header("Continual Learning: Method 2 = LUCIR")
     st.subheader("LUCIR")
     st.dataframe(heatmap_creation(df_lucir),width='stretch',hide_index=True)
 
-    st.subheader("Naive")
-    st.dataframe(heatmap_creation(df_naive_lu),width='stretch',hide_index=True)
+   
     
     st.title("Additional Information")
     st.write("First we should clarify that we here focus on Binary Class Learning, meaning that the classification task is to differentiate between real and fake images, no matter from which fake image generator the fake image originates.")
@@ -301,7 +248,7 @@ with theory_iCaRL_and_LUCIR:
     "The accuracies above the diagonal show the performance of the model trained on task t, which is tested to solve task t+1 to task t_n, where n is the number of all tasks, also known as zero-shot accuracy. " \
     "After we clarified now what the values within the tables mean, we have to mention that we have one table filled with the accuracies if the model is trained from task to task naively without considering the training data from the previous tasks, meaning we do not apply Continual Learning here. " \
     "For the other table however we used the iCaRL/LUCIR method to train the model from task to task, where we considered to include a representative subset of the training data that was used to train how to solve previous tasks. \n\n" \
-    "As you will see, for the naive approach the accuracies below the diagonal will in general not look that good, which is the effect of 'Catastrophic Forgetting, that we already talked about. " \
+    "As you will see, for the naive approach the accuracies below the diagonal will in general not look that good, which is the effect of 'Catastrophic Forgetting'. " \
     "In comparison the accuracies below the diagonal for the iCaRL/LUCIR table will look pretty good, showing the benefits of Continual Learning. " \
     "The accuracies above the diagonal are low for both approaches due to the fact that the model has not yet seen the data to solve these tasks. \n\n" \
     "Additionally it should be mentioned that LUCIR does perform better in general as well as for our demo, which can be seen through the average accuracy per state due to the additional measures that LUCIR takes, which was explained above.")
