@@ -10,6 +10,7 @@ import gc
 import sys
 import models_lucir.modified_resnet
 from models_lucir.modified_resnet import resnet50
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 sys.modules['models'] = sys.modules.get('models_lucir')
 sys.modules['models.modified_resnet'] = models_lucir.modified_resnet
