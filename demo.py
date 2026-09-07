@@ -240,8 +240,8 @@ with theory_iCaRL_and_LUCIR:
     "- Evaluation Phase: The model must classify test samples after it has seen all classes from task 1 to task t. ")
     
     st.header("Scenario for our demo")
-    st.write("For our scenario we deal, as already mentioned, with binary classification (fake vs real) even if there are seven deepfake detection tasks given. However what we will then just do is to add up the probabilities of being a deepfake generator class from the first task until the i-th task of seven tasks, which is then the overall probability of being a fake image. " \
-    "This means that the accuracies that are calculated and displayed in the table show, how many times we correctly labeled a set of test images as fake/real for a given task\n\n" \
+    st.write("For our scenario we deal with binary classification (fake vs real) for a given model solving a given task. However what we will do, for the iCaRL method, is to add up the probabilities of being a deepfake generator class from the first task until the i-th task of five tasks, which is then the overall probability of being a fake image out of the given test set for solving task j, turning it into a binary classification problem. " \
+    "This means that the accuracies that are calculated and displayed in the table show the percentage of the correctly labeled set of test images as fake/real for a given task.\n\n" \
     "The rows in the table represent the state of the model, meaning on which tasks it has already been trained on. The columns represent the task on which the model is currently tested on. " 
     "In the table the accuracies on the diagonal show the performance of the model trained on the newest task t, which is tested to solve the current task t. " \
     "The accuracies under the diagonal show the performance of the model trained on the newest task t, which is tested to solve the previous tasks 1 to task t-1." \
