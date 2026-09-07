@@ -177,7 +177,7 @@ if __name__ == "__main__":
 with theory_iCaRL_and_LUCIR:
     st.title("CONTINUAL DEEPFAKE DETECTION")
     st.title("Deepfake Detection")
-    st.write("Before we explain what deepfake detection is, let us shortly explain what deepfakes are: \n\n Deepfakes are images or videos that are manipulated with the help of AI(e.g. Deep Learning models) or can even be synthetically generated"
+    st.write("Before we explain what deepfake detection is, let us shortly explain what deepfakes are: \n\n Deepfakes are images or videos that are manipulated with the help of AI (e.g. Deep Learning models) or can even be synthetically generated"
              ".\n They pose a major threat, when they are used in a medial context to influence people or if they are used to create explicit content of a person without their consent. To mitigate these problems, we need Deepfake Detection."
              " How could this be realized? \n\n" \
     " Common deepfake detection is made possible by training a model with a fixed amount of images/videos and known fake images/videos to recognize errors like wrong shading, unusual eye movement etc.\n " \
@@ -189,14 +189,14 @@ with theory_iCaRL_and_LUCIR:
     st.write( "Before explaining what Continual Learning is, we want to explain what a task is. A task can be seen as a classification problem that a model is trying to solve. " \
     "A task for example would be: A model should classify, given a test picture, if there is a dog on the picture or a cat. Another example would be to classify between a car and a motorcycle. " \
     "If we have now multiple tasks that a model should solve, we will see that after being trained on the newest task, it will have problems to solve an older task.\n\n" \
-    "Why?: Because the model starts to forget how to solve old tasks, since it was overwritten with the training data that is needed to solve the newest task.\n" \
+    "Why? Because the model starts to forget how to solve old tasks, since it was overwritten with the training data that is needed to solve the newest task.\n" \
     "To mitigate this, so called, 'Catastrophic Forgetting', we use Continual Learning. But what does that mean? \n\n It simply means that every time we train the model, the data used for the training of the newest task is complemented by a subset of the data " \
     "that was used to train the model on a previous task. This subset is selected in a way such that it is representative for the old classes." \
     " By this technique the model is able to remember the properties of the old classes such that it can use this newly won memory to solve older tasks in a much better way.")
     st.title("Continual Deepfake Detection")
     st.write("Now we want to combine Continual Learning and Deepfake Detection. This means that in contrast to the stationary set-up, where a large amount of deepfakes is provided all at once," \
-    "we now have the scenario of deepfakes appearing time by time in a sequential manner. At each learning when trained on a new deepfake detection " \
-    "task, a standard neural network would have problems to solve previously learned tasks due to the 'Catastrofphic Forgetting'.\n\n" \
+    "we now have the scenario of deepfakes appearing in a sequential manner. At each learning when trained on a new deepfake detection " \
+    "task, a standard neural network would have problems to solve previously learned tasks due to 'Catastrofphic Forgetting'.\n\n" \
     "Continual Learning gives us the possibility to mitigate this problem by updating the model dynamically with new deepfake detection tasks without forgetting how to solve the old ones.")
 
     st.html("<style> body {bgcolor: #000000;}</style>")
@@ -223,35 +223,35 @@ with theory_iCaRL_and_LUCIR:
     
     st.title("Additional Information")
     st.write("First we should clarify that we here focus on Binary Class Learning, meaning that the classification task is to differentiate between real and fake images, no matter from which fake image generator the fake image originates.")
-    st.write("For this demo, we used two Continual Learning methods : Incremental Classifier and Representation Learning, which is also known as iCaRL and Learning a unified classifier incrementally via Rebalancing, which is also known as LUCIR. But how do these two methods work?:\n\n" \
+    st.write("For this demo, we used two Continual Learning methods : Incremental Classifier and Representation Learning, which is also known as iCaRL and Learning a unified classifier incrementally via Rebalancing, which is also known as LUCIR. But how do these two methods work?\n\n" \
     " Before explaining what iCaRL concretely does, we first have to explain, what knowledge distillation is: \n\n " \
     " Before a model learns a new deepfake variant, we capture the knowledge of its previous state. The model is constantly penalized, while being trained on a new task, if its prediction drifts away too much from the model's prediction in the previous state. This discrepancy is also " \
     "known as the distillation loss, which we want to minimize. \n\n Additionally we should clarify what the classification loss is. It just describes the discrepancy " \
-    "between the predicted label (real or fake) and the true label (real or fake) \n\n Now that we know what knowledge distillation and what classification loss is, we can explain what iCaRL does: \n\n" \
+    "between the predicted label (real or fake) and the true label (real or fake) \n\n Now that we know what knowledge distillation (loss) and what the classification loss is, we can explain what iCaRL does: \n\n" \
     "iCaRL operates under a strict class incremental protocol, which defines the sequence of the following training and evaluation phase steps: \n\n" \
     "- Training Phase: The model first receives data for the classes of task t. During that the model has access to its exemplar memory which is a set, that contains data from the classes from task 1 to task t-1. The model improves by minimizing the knowledge distillation and classification loss.\n\n" \
     "- Evaluation Phase: The model must classify test samples after it has seen all classes from task 1 to task t.\n\n" \
     "LUCIR operates under the same strict class incremental protocol, but with two additional factors:\n\n" \
-    "- Cosine normalization: If the model was trained on task i and is now trained on task i+1 with way more data in the current training data set than from task i, for which only the most representative data was chosen, we have the problem that there is a higher bias towards the current detection task. To solve this problem" \
-    "LUCIR takes the model's weights and the feature vector of the image that we wanna classify and normalizes both, such that only the orientation of the corresponding weights matter and not the amount of data.\n\n" \
-    "- Feature Distillation: While the model is trained to learn a new task, the model's internal layers start to change: We compare the normalized feature representations of the current model with those of the previous model to force their orientations to stay aligned.\n\n " \
+    "- Cosine normalization: If the model was trained on task i and is now trained on task i+1 with way more data in the current training data set than from task i, for which only the most representative data was chosen, we have the problem that there is a higher bias towards the current detection task. To solve this problem, " \
+    "LUCIR takes the model's weights and the feature vector of the image that we wanna classify and normalizes both, such that only the orientation of the corresponding weights matter and not the amount of data, when the logits are computed.\n\n" \
+    "- Feature Distillation: While the model is trained to learn a new task, the model's internal layers start to change: We compare the normalized feature representations of the current model with those of the previous model, when it gets an image from an old task as input, to force their orientations to stay aligned.\n\n " \
     "The sequence of following training and evaluation steps can be defined as:\n\n" \
     "- Training Phase: Before receiving the data for the classes of task t, the weights of the model and the output of the feature extractor, that takes input data, is normalized. During that the model has access to its exemplar memory, just as in iCaRL and it improves by minimizing the classification loss (with normalized weights and normalized feature extractor) and the feature distillation loss.\n\n" \
     "- Evaluation Phase: The model must classify test samples after it has seen all classes from task 1 to task t. ")
     
     st.header("Scenario for our demo")
     st.write("For our scenario we deal with binary classification (fake vs real) for a given model solving a given task. However what we will do, for the iCaRL method, is to add up the probabilities of being a deepfake generator class from the first task until the i-th task of five tasks, which is then the overall probability of being a fake image out of the given test set for solving task j, turning it into a binary classification problem. " \
-    "This means that the accuracies that are calculated and displayed in the table show the percentage of the correctly labeled set of test images as fake/real for a given task.\n\n" \
+    "This means that the accuracies that are calculated and displayed in the table show the percentage of the correctly labeled set of test images for a given task.\n\n" \
     "The rows in the table represent the state of the model, meaning on which tasks it has already been trained on. The columns represent the task on which the model is currently tested on. " 
     "In the table the accuracies on the diagonal show the performance of the model trained on the newest task t, which is tested to solve the current task t. " \
-    "The accuracies under the diagonal show the performance of the model trained on the newest task t, which is tested to solve the previous tasks 1 to task t-1." \
-    "The accuracies above the diagonal show the performance of the model trained on task t, which is tested to solve task t+1 to task t_n, where n is the number of all tasks, also known as zero-shot accuracy. " \
+    "The accuracies under the diagonal show the performance of the model trained on the newest task t, which is tested to solve the previous tasks 1 to task t-1. " \
+    "The accuracies above the diagonal show the performance of the model trained on task t, which is tested to solve task t+1 to task t_n, where n is the number of all tasks, are also known as zero-shot accuracy. " \
     "After we clarified now what the values within the tables mean, we have to mention that we have one table filled with the accuracies if the model is trained from task to task naively without considering the training data from the previous tasks, meaning we do not apply Continual Learning here. " \
     "For the other table however we used the iCaRL/LUCIR method to train the model from task to task, where we considered to include a representative subset of the training data that was used to train how to solve previous tasks. \n\n" \
     "As you will see, for the naive approach the accuracies below the diagonal will in general not look that good, which is the effect of 'Catastrophic Forgetting'. " \
     "In comparison the accuracies below the diagonal for the iCaRL/LUCIR table will look pretty good, showing the benefits of Continual Learning. " \
     "The accuracies above the diagonal are low for both approaches due to the fact that the model has not yet seen the data to solve these tasks. \n\n" \
-    "Additionally it should be mentioned that LUCIR does perform better in general as well as for our demo, which can be seen through the average accuracy per state due to the additional measures that LUCIR takes, which was explained above.")
+    "Additionally it should be mentioned that LUCIR does perform better in general as well as for our demo, which can be seen through the average accuracy per state due to the additional measures that LUCIR takes.")
 
     st.title("Citation")
     st.write("The code used for the training originates from these authors and their corresponding paper: ")
