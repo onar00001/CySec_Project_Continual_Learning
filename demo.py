@@ -207,19 +207,23 @@ with theory_iCaRL_and_LUCIR:
     df_lucir = pd.read_csv("acc_results_lucir/lucir_acc_matrix.csv")
    
 
-    st.title("Accuracy: Continual Learning (iCaRL and LUCIR) vs Naive Learning")
+    st.title("Accuracy: Continual Learning Methods (iCaRL and LUCIR) vs Naive Learning")
 
-    st.header("Naive (Only one logit)")
+    st.header("Comparison: iCaRL vs Naive")
+
+    st.subheader("Naive (Only one logit)")
     st.dataframe(heatmap_creation(df_naive),width='stretch',hide_index=True)
 
-    st.header("Continual Learning: Method 1 = iCaRL")
+    
     st.subheader("iCaRL")
     st.dataframe(heatmap_creation(df_icarl),width='stretch',hide_index=True)
 
-    st.header("Naive (Two logits)")
+    st.header("Comparison: LUCIR vs Naive")
+
+    st.subheader("Naive (Two logits)")
     st.dataframe(heatmap_creation(df_naive_l),width='stretch',hide_index=True)
 
-    st.header("Continual Learning: Method 2 = LUCIR")
+   
     st.subheader("LUCIR")
     st.dataframe(heatmap_creation(df_lucir),width='stretch',hide_index=True)
 
