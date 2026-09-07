@@ -49,16 +49,7 @@ def load_naive_model_luc(state_idx): # resnet50 with cosinelinear layer in contr
     path = os.path.join(checkpoint_naive_dir_l,file_name)
     if not os.path.exists(path):
             return None
-
-    checkpoint = torch.load(path,map_location=torch.device('cpu'),weights_only=False)
-    if isinstance(checkpoint,torch.nn.Module): # if whole nn is loaded
-        model = checkpoint
-    else: # nn with properties in dictionary
-        class_num_cur = 2*state_idx
-        model = resnet50(num_classes=class_num_cur,pretrained=False)
-        state_dict = checkpoint.get('state_dict',checkpoint) if isinstance(checkpoint,dict) else checkpoint.state_dict()
-        model.load_state_dict(state_dict)
-
+    model = torch.load(path,map_location=torch.device('cpu'),weights_only=False)
     model.eval()
     return model
 
@@ -96,7 +87,7 @@ def load_model_and_means(state_idx,total_tasks=5):
     return model,class_means
     
 
-def naive_inference(model,img_tensor): # done directly on model which just has one classification head (real or fake)
+def naive_inference(model,img_tensor): # done directly on model which just has logit output ( prob of being fake)
     with torch.no_grad():
         output = model(img_tensor)
         pred_prob = output.item()
@@ -134,7 +125,7 @@ def icarl_inference(model,class_means,img_tensor): # we use class means which ha
 
         return is_fake,confidence,fake_prob
 
-def lucir_inference(model,img_tensor): # number of classes that model can classify is 2 (real or fake) 
+def lucir_inference(model,img_tensor): # number of classes that model can classify is 2 (real or fake , logits displayed in array) 
     with torch.no_grad():
         output = model(img_tensor)
         logits = output['logits']
@@ -211,14 +202,14 @@ with theory_iCaRL_and_LUCIR:
 
     st.header("Comparison: iCaRL vs Naive")
 
-    st.subheader("Naive (Only one logit)")
+    st.subheader("Naive (Only one logit)") # Probability of being fake
     st.dataframe(heatmap_creation(df_naive),width='stretch',hide_index=True)
 
     
     st.subheader("iCaRL")
     st.dataframe(heatmap_creation(df_icarl),width='stretch',hide_index=True)
 
-    st.header("Comparison: LUCIR vs Naive")
+    st.header("Comparison: LUCIR vs Naive") # Probability of real and fake in an array
 
     st.subheader("Naive (Two logits)")
     st.dataframe(heatmap_creation(df_naive_l),width='stretch',hide_index=True)
