@@ -279,7 +279,7 @@ with demo_10_img_iCaRL:
 
     with col_m:
         st.markdown("#### 1. Choose method")
-        method = st.radio("Training method used:",["Naive Learning","iCaRL(Continual Learning)"],help=" 'Naive' means that the model is trained in such a way, such that it forgets how to differentiate between real and fake for an old task, i.e. to differentiate between the fake images of a certain generator and real images.\n\n" \
+        method = st.radio("Training method used:",["Naive Learning","iCaRL (Continual Learning)"],help=" 'Naive' means that the model is trained in such a way, such that it forgets how to differentiate between real and fake for an old task, i.e. to differentiate between the fake images of a certain generator and real images.\n\n" \
         "'Continual' means that the training set is updated from task to task, such that this 'Forgetting is mitigated.")
 
     with col_s:
@@ -368,7 +368,7 @@ with demo_10_img_LUCIR:
     
     with col_m_l:
         st.markdown("#### 1. Choose method")
-        method = st.radio("Training method used:",["Naive Learning","LUCIR(Learning a Unified Classifier Incrementally via Rebalancing)"],help=" 'Naive' means that the model is trained in such a way, such that it forgets how to differentiate between real and fake for an old task, i.e. to differentiate between the fake images of a certain generator and real images.\n\n" \
+        method = st.radio("Training method used:",["Naive Learning","LUCIR (Continual Learning)"],help=" 'Naive' means that the model is trained in such a way, such that it forgets how to differentiate between real and fake for an old task, i.e. to differentiate between the fake images of a certain generator and real images.\n\n" \
         "'Continual' means that the training set is updated from task to task, such that this 'Forgetting is mitigated.")
     
     with col_s_l:
