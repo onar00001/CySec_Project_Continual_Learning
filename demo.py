@@ -330,7 +330,7 @@ with demo:
 
     with col_m:
         st.markdown("#### 1. Choose method")
-        method = st.radio("Training method used:",["Naive Learning (1 logit)", "Naive Learning (2 logits)","iCaRL (Continual Learning)", "LUCIR (Continual Learning)"],help=" 'Naive' means that the model is trained in such a way, such that it forgets how to differentiate between real and fake for an old task, i.e. to differentiate between the fake images of a certain generator and real images.\n\n" \
+        method = st.radio("Training method used:",["Naive Learning (iCaRL code-skeleton)", "Naive Learning (LUCIR code-skeleton)","iCaRL (Continual Learning)", "LUCIR (Continual Learning)"],help=" 'Naive' means that the model is trained in such a way, such that it forgets how to differentiate between real and fake for an old task, i.e. to differentiate between the fake images of a certain generator and real images.\n\n" \
         "'Continual' means that the training set is updated from task to task, such that this 'Forgetting' is mitigated. \n\n Furthermore, we have two 'Naive modes', because when setting the naive flag in the iCaRL code-skeleton," \
         "the model is initialized in such a way that it has only one output neuron putting out the logit/probability of being a fake image, whereas in the LUCIR code-skeleton the model is initialized in such a way that it has two output neurons putting out" \
         "two logits, where the 0-th value is the logit/probability of an image being real and the 1-st value is the logit/probability of an image being fake. Additionally, when" \
@@ -343,9 +343,9 @@ with demo:
         naive_avg = av_acc["Naive Learning"][sel_state_idx]
         icarl_avg = av_acc["iCaRL"][sel_state_idx]
         lucir_avg = av_acc_l["LUCIR"][sel_state_idx]
-        if method == "Naive Learning (1 logit)":
+        if method == "Naive Learning (iCaRL code-skeleton)":
             cur_avg = naive_avg
-        elif method == "Naive Learning (2 logits)":
+        elif method == "Naive Learning (LUCIR code-skeleton)":
             cur_avg = naive_avg_l
         elif method == "iCaRL (Continual Learning)":
             cur_avg = icarl_avg
@@ -382,7 +382,7 @@ with demo:
         img_ten = Transform(img_r).unsqueeze(0)
         is_fake, confidence = None,None
 
-        if method == "Naive Learning (1 logit)":
+        if method == "Naive Learning (iCaRL code-skeleton)":
             model = load_naive_model(sel_state_idx)
             if model is not None:
                 is_fake,confidence = naive_inference(model,img_ten)
@@ -390,7 +390,7 @@ with demo:
             model,class_means = load_model_and_means(sel_state_idx,total_tasks=5)
             if model is not None and class_means is not None:
                 is_fake,confidence = icarl_inference(model,class_means,img_ten)
-        elif method =="Naive Learning (2 logits)":
+        elif method =="Naive Learning (LUCIR code-skeleton)":
             model = load_naive_model_luc(sel_state_idx)
             if model is not None:
                 is_fake,confidence = lucir_inference(model,img_ten)
