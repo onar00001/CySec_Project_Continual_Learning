@@ -164,56 +164,56 @@ def heatmap_creation(df):
 
     return df.style.format(percentage_display).background_gradient(cmap="RdYlGn",vmin=0,vmax=100,subset=task_cols)
 
-def saliency_com(model,img_ten,method,class_means):
-    img_ten.requires_grad_() # remember all math operations that were done with the image that we can compute in a backward manner how every pixel was important for the result
-    model.eval() # turn of training mode
-    model.zero_grad() # deleting old calculation of derivations, such that result is not wrongly influenced
-    score = None
+#def saliency_com(model,img_ten,method,class_means):
+#    img_ten.requires_grad_() # remember all math operations that were done with the image that we can compute in a backward manner how every pixel was important for the result
+#    model.eval() # turn of training mode
+#    model.zero_grad() # deleting old calculation of derivations, such that result is not wrongly influenced
+#    score = None
 
-    if method == "Naive Learning (1 logit)":
-        output = model(img_ten)
-        score = output
+#    if method == "Naive Learning (1 logit)":
+#        output = model(img_ten)
+#        score = output
 
-    elif method in ["Naive Learning (2 logits)","LUCIR (Continual Learning)"]:
-        output = model(img_ten)
-        logits = output['logits']
-        pred_class = torch.argmax(logits,dim=1)
-        score = logits[0,pred_class]
+#    elif method in ["Naive Learning (2 logits)","LUCIR (Continual Learning)"]:
+#        output = model(img_ten)
+#        logits = output['logits']
+#        pred_class = torch.argmax(logits,dim=1)
+#        score = logits[0,pred_class]
 
-    elif method == "iCaRL (Continual Learning)":
-        if class_means is None:
-            st.error("Can't be None")
-            return None,None
+#    elif method == "iCaRL (Continual Learning)":
+#        if class_means is None:
+#            st.error("Can't be None")
+#            return None,None
         # feature extraction
-        features = model.feature_extractor(img_ten)   
+#        features = model.feature_extractor(img_ten)   
         
         # L2 normalisation
-        pred_inter = (features.T / torch.norm(features.T,dim=0)).T
+#        pred_inter = (features.T / torch.norm(features.T,dim=0)).T
         
-        # calculate distance to stored class means
-        sqd = torch.cdist(class_means[:,:,0].T,pred_inter)
-        score_icarl = (-sqd).T
+#        # calculate distance to stored class means
+#        sqd = torch.cdist(class_means[:,:,0].T,pred_inter)
+#        score_icarl = (-sqd).T
 
-        best_class = torch.argmax(score_icarl)
-        score = score_icarl[0,best_class]
+#        best_class = torch.argmax(score_icarl)
+#        score = score_icarl[0,best_class]
 
-    if score is None:
-        return None,None
+#    if score is None:
+#        return None,None
 
-    if score.dim() > 0:
-        score = score.sum()
-    score.backward() # backpropagation
-    saliency,_ = torch.max(img_ten.grad.data.abs().squeeze(),dim=0) # absolute value of gradients
-    saliency = saliency.cpu().numpy() # turned into numpy array
+#    if score.dim() > 0:
+#        score = score.sum()
+#    score.backward() # backpropagation
+#    saliency,_ = torch.max(img_ten.grad.data.abs().squeeze(),dim=0) # absolute value of gradients
+#    saliency = saliency.cpu().numpy() # turned into numpy array
 
-    perc_max = np.percentile(saliency,99) # value under which 99% of gradient values lie
-    perc_min = saliency.min() # smallest occuring gradient value in image
-    if perc_max > perc_min:
-        saliency = np.clip((saliency-perc_min)/(perc_max-perc_min),0,1) # useful value
-    else:
-        saliency = np.zeros_like(saliency) # black 
-    heat_m = cm.hot(saliency)[...,:3] # only considering RGB
-    return heat_m,saliency
+#    perc_max = np.percentile(saliency,99) # value under which 99% of gradient values lie
+#    perc_min = saliency.min() # smallest occuring gradient value in image
+#    if perc_max > perc_min:
+#        saliency = np.clip((saliency-perc_min)/(perc_max-perc_min),0,1) # useful value
+#    else:
+#        saliency = np.zeros_like(saliency) # black 
+#    heat_m = cm.hot(saliency)[...,:3] # only considering RGB
+#    return heat_m,saliency
 
 
     
@@ -246,8 +246,7 @@ with theory_iCaRL_and_LUCIR:
     df_naive = pd.read_csv("acc_results_from_repo/naive_acc_matrix.csv")
     df_naive_l = pd.read_csv("acc_results_lucir/naive_acc_matrix.csv") 
     df_lucir = pd.read_csv("acc_results_lucir/lucir_acc_matrix.csv")
-   
-
+    
     st.title("Accuracy: Continual Learning Methods (iCaRL and LUCIR) vs Naive Learning")
 
     st.header("Comparison: iCaRL vs Naive")
@@ -434,38 +433,38 @@ with demo:
 
                 # saliency map
 
-                st.divider()
-                st.subheader("Explainability of Model Decision")
-                if st.button("Build Saliency Map", help= "The Saliency Map shows which pixels were relevant for the prediction of the model."):
-                    with st.spinner("Gradients are calculated"):
-                        img_ten_sal = Transform(img_r).unsqueeze(0)
-                        c_m = class_means if method == "iCaRL (Continual Learning)" else None
-                        if model is not None:
-                            heatmap , saliency = saliency_com(model,img_ten_sal,method,c_m)
-                        else:
-                            st.error("Model what are you doing")
-                        # undoing normalization such that heatmap can be layed on image
-                        mean_inv = [-0.485/0.229,-0.456/0.224,-0.406/0.225]
-                        std_inv = [1/0.229,1/0.224,1/0.225]
+               # st.divider()
+               # st.subheader("Explainability of Model Decision")
+               # if st.button("Build Saliency Map", help= "The Saliency Map shows which pixels were relevant for the prediction of the model."):
+               #     with st.spinner("Gradients are calculated"):
+               #         img_ten_sal = Transform(img_r).unsqueeze(0)
+               #         c_m = class_means if method == "iCaRL (Continual Learning)" else None
+               #         if model is not None:
+               #             heatmap , saliency = saliency_com(model,img_ten_sal,method,c_m)
+               #         else:
+               #             st.error("Model what are you doing")
+               #         # undoing normalization such that heatmap can be layed on image
+               #         mean_inv = [-0.485/0.229,-0.456/0.224,-0.406/0.225]
+               #         std_inv = [1/0.229,1/0.224,1/0.225]
 
-                        ten_clone = img_ten.squeeze().clone()
+               #         ten_clone = img_ten.squeeze().clone()
 
-                        for ten,mean,std_ in zip(ten_clone,mean_inv,std_inv): # get original RGB values before normalization
-                            ten.sub_(mean).div_(std_)
+               #         for ten,mean,std_ in zip(ten_clone,mean_inv,std_inv): # get original RGB values before normalization
+               #             ten.sub_(mean).div_(std_)
 
-                        # streamlit needs image as [height,width,channel] but pytorch stores images as [channel,height,width] 
+               #         # streamlit needs image as [height,width,channel] but pytorch stores images as [channel,height,width] 
 
-                        img = ten_clone.permute(1,2,0).numpy()
-                        img = np.clip(img,0,1)
-                        over_l = 0.5 * img + 0.5*heatmap
+               #         img = ten_clone.permute(1,2,0).numpy()
+               #         img = np.clip(img,0,1)
+               #         over_l = 0.5 * img + 0.5*heatmap
 
-                        sali_col_1,sali_col_2 = st.columns(2)
-                        with sali_col_1: # without picture only regions
-                            st.image(heatmap,caption="Saliency Heatmap",width='stretch')
+               #         sali_col_1,sali_col_2 = st.columns(2)
+               #         with sali_col_1: # without picture only regions
+               #             st.image(heatmap,caption="Saliency Heatmap",width='stretch')
 
-                        with sali_col_2: # with picture
-                            st.image(over_l,caption="Overlay on image",width='stretch')
-                        st.caption("Yellow/White regions show most important spots for model evaluation.") 
+               #         with sali_col_2: # with picture
+               #             st.image(over_l,caption="Overlay on image",width='stretch')
+               #         st.caption("Yellow/White regions show most important spots for model evaluation.") 
 
 
     
