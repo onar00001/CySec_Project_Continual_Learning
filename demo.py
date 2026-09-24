@@ -251,7 +251,7 @@ with theory_iCaRL_and_LUCIR:
 
     st.header("Comparison: iCaRL vs Naive")
 
-    st.subheader("Naive (Only one logit)") # Probability of being fake
+    st.subheader("Naive (iCaRL code-skeleton)") # Probability of being fake
     st.dataframe(heatmap_creation(df_naive),width='stretch',hide_index=True)
 
     
@@ -260,7 +260,7 @@ with theory_iCaRL_and_LUCIR:
 
     st.header("Comparison: LUCIR vs Naive") # Probability of real and fake in an array
 
-    st.subheader("Naive (Two logits + Cosine Normalization)")
+    st.subheader("Naive (LUCIR code-skeleton)")
     st.dataframe(heatmap_creation(df_naive_l),width='stretch',hide_index=True)
 
    
